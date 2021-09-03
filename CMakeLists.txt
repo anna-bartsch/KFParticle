@@ -25,7 +25,8 @@ list(APPEND CMAKE_PREFIX_PATH $ENV{ROOTSYS} ${ROOTSYS})
 
 set(FIXTARGET FALSE CACHE BOOL "Compile for fix target geometry.")
 
-find_package(ROOT REQUIRED COMPONENTS Core Hist Matrix Physics EG Gpad Graf Graf3d RIO MathCore)
+find_package(ROOT REQUIRED COMPONENTS Core Hist Matrix Physics EG Gpad Graf Graf3d RIO MathCore Net)
+
 If(DEFINED Vc_INCLUDE_DIR AND Vc_LIBRARIES)
   Message("Vc found")
 Else()
@@ -141,3 +142,23 @@ install(FILES ${HEADERS} ${NODICT_HEADERS} DESTINATION include)
 install(FILES ${CMAKE_BINARY_DIR}/${CMAKE_SHARED_LIBRARY_PREFIX}KFParticle_rdict.pcm DESTINATION lib OPTIONAL)
 install(FILES ${CMAKE_BINARY_DIR}/${CMAKE_SHARED_LIBRARY_PREFIX}KFParticle.rootmap DESTINATION lib)
 install(TARGETS KFParticle DESTINATION lib)
+
+
+###################################################################################################
+##
+##      Tests
+##
+###################################################################################################
+
+# check if the package testing is needed
+get_directory_property(IS_SUBPROJECT PARENT_DIRECTORY)
+
+if (IS_SUBPROJECT AND NOT DEFINED KFPARTICLE_TESTING)
+    message(STATUS "KFParticle is not tested in submodule mode")
+    set(KFPARTICLE_TESTING OFF)
+else()
+    enable_testing()
+    add_subdirectory(test)
+endif()
+
+option(KFPARTICLE_TESTING "Enable unit testing" ON)
