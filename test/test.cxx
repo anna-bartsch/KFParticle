@@ -1,6 +1,6 @@
 /* Copyright (C) 2021-2021 GSI Helmholtzzentrum fuer Schwerionenforschung, Darmstadt
    SPDX-License-Identifier: GPL-3.0-only
-   Authors: Sergey Gorbunov [committer] */
+   Authors: Sergey Gorbunov [committer] and Anna Bartsch*/
 
 /// @file test.cxx
 /// @author Sergey Gorbunov
@@ -135,7 +135,7 @@ int main(int argc, char** /*argv*/)
     z_res->Fill(mother.Z() - 0.);
     z_pull->Fill( (mother.Z() - 0.)/mother.GetErrZ() );
 
-    x_res_angle->Fill( (mother.X() -0.), abs( phi2 - phi1) );
+    x_res_angle->Fill( (mother.X() -0.), abs( phi2 - phi1) ); // lieber Achsen tauschen
 
     //std::cout<<" Px " << mother.Px()<<" Py "<< mother.Py()<<" Pz "<<mother.Pz()<<std::endl;  //Px, Py, Pz
     Px_res->Fill(mother.Px() - motherReal.Px());
@@ -148,9 +148,10 @@ int main(int argc, char** /*argv*/)
     E_res->Fill(mother.E() - motherReal.E());
     E_pull->Fill( (mother.E() - motherReal.E())/mother.GetErrE() );
 
-    Chi2->Fill( mother.GetChi2()  ); // mother.GetNDF()
+    Chi2->Fill( mother.GetChi2() / mother.GetNDF() );
 
-    std::cout << mother.GetNDF() << std::endl;
+   // std::cout << mother.GetNDF() << std::endl; ist immer 1 da NDF von daughter jeweils 5 -> NDF = 5 + 5 - 6 (Anzahl parameter Mutter) -3 Einschränkungen
+   // Test
 
   }
    file.cd();
