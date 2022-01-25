@@ -9,6 +9,7 @@
 #include "TApplication.h"
 #include "TCanvas.h"
 #include "TH1F.h"
+#include "TH2F.h"
 #include "TROOT.h"
 #include "Riostream.h"
 #include "TDatabasePDG.h"
@@ -18,12 +19,17 @@
 
 #include "KFParticle.h"
 
+using namespace std;
+
 int main(int argc, char** /*argv*/)
 {
   gROOT->SetBatch((argc <= 1) ? kTRUE : kFALSE);
   TApplication app("app", 0, nullptr);
   TCanvas* c = new TCanvas();
   TH1F* h = new TH1F("h", "h", 100, 0., 1.);
+  TH2F* g = new TH2F("g", "g", 100, 0., 1., 100, 0., 1.);
+  //g->Fill(0.5);
+  g->Draw();
   h->Fill(0.5);
   h->Draw();
   c->Draw();
@@ -50,22 +56,27 @@ int main(int argc, char** /*argv*/)
  
   TFile file("output.root","RECREATE");
 
-  TH1F *x_res = new TH1F("x_res", "X resolution", 1000, -10, 10);   // x, y, z 
+  TH1F *x_res = new TH1F("x_res", "X resolution", 1000, -1, 1);   // x, y, z 
   TH1F *x_pull = new TH1F("x_pull", "X pull", 1000, -10, 10);
-  TH1F *y_res = new TH1F("y_res", "Y resolution", 1000, -10, 10);
+  TH1F *y_res = new TH1F("y_res", "Y resolution", 1000, -1, 1);
   TH1F *y_pull = new TH1F("y_pull", "Y pull", 1000, -10, 10);
-  TH1F *z_res = new TH1F("z_res", "Z resolution", 1000, -10, 10);
+  TH1F *z_res = new TH1F("z_res", "Z resolution", 1000, -0.5, 0.5);
   TH1F *z_pull = new TH1F("z_pull", "Z pull", 1000, -10, 10);
 
-  TH1F *Px_res = new TH1F("Px_res", "PX resolution", 1000, -10, 10);  // Px, Py, Pz
+  TH2F *x_res_angle = new TH2F( "x_res_angle", "X Res and angle", 1000, -1, 1, 1000, 0, TMath::TwoPi()  );
+
+  TH1F *Px_res = new TH1F("Px_res", "PX resolution", 1000, -0.1, 0.1);  // Px, Py, Pz
   TH1F *Px_pull = new TH1F("Px_pull", "PX pull", 1000, -10, 10);
-  TH1F *Py_res = new TH1F("Py_res", "PY resolution", 1000, -10, 10);
+  TH1F *Py_res = new TH1F("Py_res", "PY resolution", 1000, -0.1, 0.1);
   TH1F *Py_pull = new TH1F("Py_pull", "PY pull", 1000, -10, 10);
-  TH1F *Pz_res = new TH1F("Pz_res", "PZ resolution", 1000, -10, 10);
+  TH1F *Pz_res = new TH1F("Pz_res", "PZ resolution", 1000, -0.1, 0.1);
   TH1F *Pz_pull = new TH1F("Pz_pull", "PZ pull", 1000, -10, 10);
 
-  TH1F *E_res = new TH1F("e_res", "E resolution", 1000, -10, 10);  // E
+  TH1F *E_res = new TH1F("e_res", "E resolution", 1000, -0.1, 0.1);  // E
   TH1F *E_pull = new TH1F("e_pull", "E pull", 1000, -10, 10);
+
+  TH1F *Chi2 = new TH1F("chi2/ndf", "Chi2/NDF", 1000, -8, 8);
+
 
 
 
@@ -124,6 +135,8 @@ int main(int argc, char** /*argv*/)
     z_res->Fill(mother.Z() - 0.);
     z_pull->Fill( (mother.Z() - 0.)/mother.GetErrZ() );
 
+    x_res_angle->Fill( (mother.X() -0.), abs( phi2 - phi1) );
+
     //std::cout<<" Px " << mother.Px()<<" Py "<< mother.Py()<<" Pz "<<mother.Pz()<<std::endl;  //Px, Py, Pz
     Px_res->Fill(mother.Px() - motherReal.Px());
     Px_pull->Fill( (mother.Px() - motherReal.Px())/mother.GetErrPx() );
@@ -135,6 +148,9 @@ int main(int argc, char** /*argv*/)
     E_res->Fill(mother.E() - motherReal.E());
     E_pull->Fill( (mother.E() - motherReal.E())/mother.GetErrE() );
 
+    Chi2->Fill( mother.GetChi2()  ); // mother.GetNDF()
+
+    std::cout << mother.GetNDF() << std::endl;
 
   }
    file.cd();
@@ -145,6 +161,8 @@ int main(int argc, char** /*argv*/)
   z_res->Write();
   z_pull->Write();
 
+  x_res_angle->Write();
+
   Px_res->Write();
   Px_pull->Write();
   Py_res->Write();
@@ -154,6 +172,8 @@ int main(int argc, char** /*argv*/)
 
   E_res->Write();
   E_pull->Write();
+
+  Chi2->Write();
 
   file.Close();
   return 0;
