@@ -56,14 +56,16 @@ int main(int argc, char** /*argv*/)
  
   TFile file("output.root","RECREATE");
 
-  TH1F *x_res = new TH1F("x_res", "X resolution", 1000, -1, 1);   // x, y, z 
+  TH1F *x_res = new TH1F("x_res", "X resolution", 1000, -2, 2);   // x, y, z 
   TH1F *x_pull = new TH1F("x_pull", "X pull", 1000, -10, 10);
   TH1F *y_res = new TH1F("y_res", "Y resolution", 1000, -1, 1);
   TH1F *y_pull = new TH1F("y_pull", "Y pull", 1000, -10, 10);
   TH1F *z_res = new TH1F("z_res", "Z resolution", 1000, -0.5, 0.5);
   TH1F *z_pull = new TH1F("z_pull", "Z pull", 1000, -10, 10);
 
-  TH2F *x_res_angle = new TH2F( "x_res_angle", "X Res and angle", 1000, -1, 1, 1000, 0, TMath::TwoPi()  );
+  TH2F *x_res_angle = new TH2F( "x_res_angle", "X Res and angle", 1000, -0.1, 360 , 1000, -10, 10  ); // dependency on angle TMath::TwoPi()
+  TH2F *y_res_angle = new TH2F( "y_res_angle", "Y Res and angle", 1000, -0.1, 360, 1000, -10, 10  ); // dependency on angle TMath::TwoPi()
+  TH1F *angle_distribution = new TH1F( "angle_distribution", "angle distribution", 1000, -0.1, 360 ); // dependency on angle TMath::TwoPi()
 
   TH1F *Px_res = new TH1F("Px_res", "PX resolution", 1000, -0.1, 0.1);  // Px, Py, Pz
   TH1F *Px_pull = new TH1F("Px_pull", "PX pull", 1000, -10, 10);
@@ -97,7 +99,11 @@ int main(int argc, char** /*argv*/)
 
     double paramReal1[6] = {0,0,0, TMath::Cos(phi1), TMath::Sin(phi1), 0};    
     double paramReal2[6] = {0,0,0, TMath::Cos(phi2), TMath::Sin(phi2), 0};
-    
+    double paramRealMother[6] = {0,0,0, 0, 0, 0};
+    for( int i=3; i<6;i++){
+      paramRealMother[i]=paramReal1[i] + paramReal2[i];
+    }
+    double massMother = 1.;
     double paramFit1[6]; // with errors
     double paramFit2[6];
   
@@ -120,11 +126,21 @@ int main(int argc, char** /*argv*/)
     KFParticle pReal2;
     pReal2.Create( paramReal2, cov, -1, (float) TDatabasePDG::Instance()->GetParticle("pi-")->Mass(), 0, 1 );
 
-    KFParticle motherReal(pReal1, pReal2);
-    
+    KFParticle motherReal;
+    motherReal.Create(paramRealMother, cov, 0, massMother, 0, 1);
 
     //ein echtes Mutterteilchen erstellen, damit die Impulse und Energien verglichen werden können? xyz sind real ja null, aber Px und Py nicht.
+    //rotate to direction of real mother particle
 
+    double originPhi = phi1;//(phi1+phi2)/2;
+
+    float origin[]={0.,0.,0.};
+    p1.RotateXY(originPhi, origin);
+    p2.RotateXY(originPhi, origin);
+    mother.RotateXY(originPhi, origin);
+    pReal1.RotateXY(originPhi, origin);
+    pReal2.RotateXY(originPhi, origin);
+    motherReal.RotateXY(originPhi, origin);
 
 
     //std::cout<<" x " << mother.X()<<" y "<< mother.Y()<<" z "<<mother.Z()<<std::endl; //x, y, z
@@ -135,7 +151,9 @@ int main(int argc, char** /*argv*/)
     z_res->Fill(mother.Z() - 0.);
     z_pull->Fill( (mother.Z() - 0.)/mother.GetErrZ() );
 
-    x_res_angle->Fill( (mother.X() -0.), abs( phi2 - phi1) ); // lieber Achsen tauschen
+    x_res_angle->Fill( 360 * abs( phi2 - phi1) / TMath::TwoPi() , (mother.X() -0.) ); // Achsen wurden getauscht
+    y_res_angle->Fill( 360 * abs( phi2 - phi1) / TMath::TwoPi() , (mother.Y() -0.) );
+    angle_distribution->Fill( 360 * abs( phi2 - phi1) / TMath::TwoPi() );
 
     //std::cout<<" Px " << mother.Px()<<" Py "<< mother.Py()<<" Pz "<<mother.Pz()<<std::endl;  //Px, Py, Pz
     Px_res->Fill(mother.Px() - motherReal.Px());
@@ -154,7 +172,51 @@ int main(int argc, char** /*argv*/)
    // Test
 
   }
-   file.cd();
+
+  // ->SetTitle("Projektion X");
+  // ->GetXaxis()->SetTitle("x");
+
+
+  x_res->GetXaxis()->SetTitle("error in x");
+  x_res->GetYaxis()->SetTitle("quantity");
+  x_pull->GetXaxis()->SetTitle("error in x / expected error");
+  x_pull->GetYaxis()->SetTitle("quantity");
+  y_res->GetXaxis()->SetTitle("error in y");
+  y_res->GetYaxis()->SetTitle("quantity");
+  y_pull->GetXaxis()->SetTitle("error in y / expected error");
+  y_pull->GetYaxis()->SetTitle("quantity");
+  z_res->GetXaxis()->SetTitle("error in z");
+  z_res->GetYaxis()->SetTitle("quantity");
+  z_pull->GetXaxis()->SetTitle("error in z / expected error");
+  z_pull->GetYaxis()->SetTitle("quantity");
+  Px_res->GetXaxis()->SetTitle("error in Px");
+  Px_res->GetYaxis()->SetTitle("quantity");
+  Px_pull->GetXaxis()->SetTitle("error in Px / expected error");
+  Px_pull->GetYaxis()->SetTitle("quantity");
+  Py_res->GetXaxis()->SetTitle("error in Py");
+  Py_res->GetYaxis()->SetTitle("quantity");
+  Py_pull->GetXaxis()->SetTitle("error in Py / expected error");
+  Py_pull->GetYaxis()->SetTitle("quantity");
+  Pz_res->GetXaxis()->SetTitle("error in z");
+  Pz_res->GetYaxis()->SetTitle("quantity");
+  Pz_pull->GetXaxis()->SetTitle("error in Pz / expected error");
+  Pz_pull->GetYaxis()->SetTitle("quantity");
+
+  x_res_angle->GetXaxis()->SetTitle("angle");
+  x_res_angle->GetYaxis()->SetTitle("x");
+  y_res_angle->GetXaxis()->SetTitle("angle");
+  y_res_angle->GetYaxis()->SetTitle("y");
+  angle_distribution->GetXaxis()->SetTitle("angle");
+  angle_distribution->GetYaxis()->SetTitle("quantity");
+  
+
+  //E_res->GetXaxis->SetTitle("x");
+  //E_res->GetYaxis->SetTitle("energy diff");
+  //E_pull->GetXaxis->SetTitle("x");
+  //E_pull->GetYaxis->SetTitle("energy diff/err");
+
+
+  file.cd();
   x_res->Write();
   x_pull->Write();
   y_res->Write();
@@ -163,6 +225,8 @@ int main(int argc, char** /*argv*/)
   z_pull->Write();
 
   x_res_angle->Write();
+  y_res_angle->Write();
+  angle_distribution->Write();
 
   Px_res->Write();
   Px_pull->Write();
